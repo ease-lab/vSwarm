@@ -75,9 +75,8 @@ const (
 	INLINE        = "INLINE"
 	XDT           = "XDT"
 	S3            = "S3"
-	ELASTICACHE = "ELASTICACHE"
+	ELASTICACHE   = "ELASTICACHE"
 	AWS_S3_BUCKET = "vhive-prodcon-bench"
-	AWS_ELASTICACHE_BENCH = "test5.0vgvbw.ng.0001.usw1.cache.amazonaws.com:6379"
 	TOKEN         = ""
 )
 
@@ -86,7 +85,7 @@ var (
 	SECRET_KEY    string
 	AWS_S3_REGION string
 	S3_SESSION    *session.Session
-	REDIS_CLIENT *redis.Client
+	REDIS_CLIENT  *redis.Client
 )
 
 func setAWSCredentials() {
@@ -109,11 +108,15 @@ func setAWSCredentials() {
 		Credentials: credentials.NewStaticCredentials(AKID, SECRET_KEY, TOKEN),
 	})
 	if err != nil {
-		log.Fatalf("[consumer] Failed establish s3 session: %s", err)
+		log.Fatalf("[producer] Failed establish s3 session: %s", err)
 	}
 	fmt.Printf("USING AWS ID: %v", AKID)
+	AWS_ELASTICACHE_URL, ok := os.LookupEnv("AWS_ELASTICACHE_BUCKET")
+	if !ok {
+		log.Errorf("[producer] Empty ELASTICACHE URL")
+	}
 	REDIS_CLIENT = redis.NewClient(&redis.Options{
-		Addr:     AWS_ELASTICACHE_BENCH,
+		Addr:     AWS_ELASTICACHE_URL,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
@@ -283,7 +286,7 @@ func main() {
 
 		ps.XDTclient = xdtClient
 		us.XDTclient = xdtClient
-	} else if transferType == S3 {
+	} else if transferType == S3 || transferType == ELASTICACHE {
 		setAWSCredentials()
 	}
 	pb.RegisterGreeterServer(grpcServer, &ps)

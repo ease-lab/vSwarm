@@ -54,9 +54,8 @@ const (
 	INLINE        = "INLINE"
 	XDT           = "XDT"
 	S3            = "S3"
-	ELASTICACHE = "ELASTICACHE"
+	ELASTICACHE   = "ELASTICACHE"
 	AWS_S3_BUCKET = "vhive-prodcon-bench"
-	AWS_ELASTICACHE_BENCH = "test5.0vgvbw.ng.0001.usw1.cache.amazonaws.com:6379"
 	TOKEN         = ""
 )
 
@@ -65,7 +64,7 @@ var (
 	SECRET_KEY    string
 	AWS_S3_REGION string
 	S3_SVC        *s3.S3
-	REDIS_CLIENT *redis.Client
+	REDIS_CLIENT  *redis.Client
 )
 
 type consumerServer struct {
@@ -103,8 +102,13 @@ func setAWSCredentials() {
 		log.Fatalf("[consumer] Failed establish s3 session: %s", err)
 	}
 	S3_SVC = s3.New(sessionInstance)
+
+	AWS_ELASTICACHE_URL, ok := os.LookupEnv("AWS_ELASTICACHE_BUCKET")
+	if !ok {
+		log.Errorf("[producer] Empty ELASTICACHE URL")
+	}
 	REDIS_CLIENT = redis.NewClient(&redis.Options{
-		Addr:     AWS_ELASTICACHE_BENCH,
+		Addr:     AWS_ELASTICACHE_URL,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
@@ -140,7 +144,7 @@ func fetchFromRedis(ctx context.Context, key string) (int, error) {
 	log.Infof("[consumer] Fetching %s from ElastiCache", key)
 	val, err := REDIS_CLIENT.Get(ctx, key).Result()
 	if err != nil {
-		log.Errorf("Object %q not found in ELASTICACHE bucket %q: %s", key, AWS_ELASTICACHE_BENCH, err.Error())
+		log.Errorf("Object %q not found in ELASTICACHE bucket %q: %s", key, os.Getenv("AWS_ELASTICACHE_BUCKET"), err.Error())
 		return 0, err
 	}
 
@@ -164,7 +168,7 @@ func (s *consumerServer) ConsumeByte(ctx context.Context, str *pb.ConsumeByteReq
 			log.Printf("[consumer] Consumed %d bytes\n", payloadSize)
 			return &pb.ConsumeByteReply{Value: true}, err
 		}
-	}else if s.transferType == ELASTICACHE {
+	} else if s.transferType == ELASTICACHE {
 		payloadSize, err := fetchFromRedis(ctx, string(str.Value))
 		if err != nil {
 			return &pb.ConsumeByteReply{Value: false}, err
@@ -227,7 +231,7 @@ func main() {
 		transferType = "INLINE"
 	}
 
-	if transferType == S3 {
+	if transferType == S3 || transferType == ELASTICACHE {
 		setAWSCredentials()
 	}
 
