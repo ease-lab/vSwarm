@@ -25,6 +25,7 @@ env:
   GO111MODULE: on
   PORT: 50051
   KUBECONFIG: /etc/kubernetes/admin.conf
+  PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   build-and-push:
@@ -63,7 +64,6 @@ jobs:
           push: true
           file: benchmarks/hotel-app/Dockerfile
           platforms: ${{ env.PLATFORMS }}
-          target: ${{ matrix.target }}
           tags: vhiveease/hotel-app-${{ matrix.service }}:latest
           build-args: SERVICE=${{ matrix.service }}
           context: .
