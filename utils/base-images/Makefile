@@ -21,53 +21,19 @@
 # SOFTWARE.
 
 
-clean: clean-proto
+.PHONY: all
+
+IMAGES 	  ?= golang-builder python-slim node-slim mongodb memcached
 
 
-ROOT = ../../
-
-FUNCTIONS = aes-python aes-nodejs aes-go
-ALL_IMAGES = $(addsuffix -image, $(FUNCTIONS))
-
-all: all_image
-
-all_image: $(ALL_IMAGES)
-
-
-aes-python-image: Dockerfile python/server.py
-	DOCKER_BUILDKIT=1 docker buildx build \
-	--tag vhiveease/aes-python:latest \
-	--target aesPython \
+#### Build the base images
+%: Dockerfile
+	DOCKER_BUILDKIT=1 docker build \
+	--tag docker.io/vhiveease/$@:latest \
+	--target $@ \
 	-f Dockerfile \
-	$(ROOT)
+	.
 
 
-aes-nodejs-image: Dockerfile nodejs/server.js
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain \
-	--tag vhiveease/aes-nodejs:latest \
-	--target aesNodeJS \
-	-f Dockerfile \
-	$(ROOT)
+all: $(IMAGES)
 
-
-aes-go-image: Dockerfile go/server.go
-	DOCKER_BUILDKIT=1 docker buildx build \
-	--tag vhiveease/aes-go:latest \
-	--target aesGo \
-	-f Dockerfile \
-	$(ROOT)
-
-
-## Push images
-
-push-%: %-image
-	docker push docker.io/vhiveease/$(subst push-,,$@):latest
-
-push: $(addprefix push-, $(FUNCTIONS))
-
-## Pull images from docker hub
-
-pull-%:
-	docker pull docker.io/vhiveease/$(subst pull-,,$@):latest
-
-pull: $(addprefix pull-, $(FUNCTIONS))

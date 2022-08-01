@@ -20,54 +20,35 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# #---------- python-slim -----------#
+# # First stage (Builder):
 
-clean: clean-proto
-
-
-ROOT = ../../
-
-FUNCTIONS = aes-python aes-nodejs aes-go
-ALL_IMAGES = $(addsuffix -image, $(FUNCTIONS))
-
-all: all_image
-
-all_image: $(ALL_IMAGES)
+# FROM vhiveease/python-slim:latest as
 
 
-aes-python-image: Dockerfile python/server.py
-	DOCKER_BUILDKIT=1 docker buildx build \
-	--tag vhiveease/aes-python:latest \
-	--target aesPython \
-	-f Dockerfile \
-	$(ROOT)
 
 
-aes-nodejs-image: Dockerfile nodejs/server.js
-	DOCKER_BUILDKIT=1 docker buildx build --progress=plain \
-	--tag vhiveease/aes-nodejs:latest \
-	--target aesNodeJS \
-	-f Dockerfile \
-	$(ROOT)
+#---------- golang-builder -----------#
+FROM golang:1.16 AS golang-builder
+LABEL maintainer="https://github.com/ease-lab"
 
 
-aes-go-image: Dockerfile go/server.go
-	DOCKER_BUILDKIT=1 docker buildx build \
-	--tag vhiveease/aes-go:latest \
-	--target aesGo \
-	-f Dockerfile \
-	$(ROOT)
+#---------- python-builder -----------#
+FROM  python:3.8-slim AS python-slim
+LABEL maintainer="https://github.com/ease-lab"
 
 
-## Push images
+#---------- nodejs-builder -----------#
+FROM  node:18.6-slim AS node-slim
+LABEL maintainer="https://github.com/ease-lab"
 
-push-%: %-image
-	docker push docker.io/vhiveease/$(subst push-,,$@):latest
 
-push: $(addprefix push-, $(FUNCTIONS))
 
-## Pull images from docker hub
+#---------- MongoDB -----------#
+FROM  mongo:4.2 AS mongodb
+LABEL maintainer="https://github.com/ease-lab"
 
-pull-%:
-	docker pull docker.io/vhiveease/$(subst pull-,,$@):latest
+#---------- Memcached -----------#
+FROM  memcached:1.6 AS memcached
+LABEL maintainer="https://github.com/ease-lab"
 
-pull: $(addprefix pull-, $(FUNCTIONS))
